@@ -859,7 +859,7 @@ function Events2() { // sys_roles
 
 	function on_view_form_created(item) {
 		let w = '70px',
-			table_height = task.center_panel.height() - item.task.view_panel.height();
+			table_height = Math.max(task.center_panel.height() - item.task.view_panel.height(), 400);
 		item.edit_options.fields = ['f_name'];
 		item.edit_options.title = item.task.language.roles + task.help_badge('https://jampy-docs-v7.readthedocs.io/en/latest/admin/roles.html');
 		if (item.view_form.hasClass('modal')) {
