@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import datetime
 from threading import Lock
@@ -717,10 +718,11 @@ def server_get_task_info(task):
     task_caption = items.f_name.value;
     params = task.sys_params.copy()
     params.open()
-    task_version = '%s / %s' % (params.f_version.value, task.app.jam_version)
+    task_version = '%s / %s / Python %s' % (params.f_version.value, task.app.jam_version, sys.version.split()[0])
     tasks = task.sys_tasks.copy()
     tasks.open()
     task_db = tasks.f_alias.value
+    python_version = sys.version.split()[0]
     return task_name, task_caption, task_version, task_db, task.app.started
 
 def server_can_delete_lookup_list(task, list_id):
