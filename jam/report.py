@@ -160,18 +160,60 @@ class Report(object):
 #                self.report_url = self.report_url.replace('.ods', self.ext)
 
     def convert_report(self):
+        print(f"=== convert_report START ===")
+        print(f"ext: {self.ext}")
+        print(f"report_filename: {self.report_filename}")
+        print(f"has on_convert_report: {hasattr(self, 'on_convert_report')}")
+        
         converted = False
+        
         # Call user's on_convert_report
         if hasattr(self, 'on_convert_report') and self.on_convert_report:
             try:
+                print("Calling on_convert_report...")
                 result = self.on_convert_report(self)
+                print(f"on_convert_report returned: {result}")
                 if result is True:
-                    return True
+                    print("✅ User handled conversion - RETURNING TRUE")
+                    return True  # ← THIS IS CRITICAL!
             except Exception as e:
                 print(f"on_convert_report error: {e}")
         else:
             print("No on_convert_report found")
-
+        
+        # Try internal on_convert
+        if hasattr(self, 'on_convert') and self.on_convert:
+            try:
+                print("Calling on_convert...")
+                result = self.on_convert(self)
+                print(f"on_convert returned: {result}")
+                if result is True:
+                    print("✅ on_convert handled it - RETURNING TRUE")
+                    return True
+            except Exception as e:
+                print(f"on_convert error: {e}")
+        else:
+            print("No on_convert found")
+        
+        # ONLY reach here if NO user handler succeeded
+        print("❌ No user handler succeeded - using fallback convert()")
+        converted = self.convert()
+        print(f"convert() returned: {converted}")
+        
+        # Only process file if we did the conversion here
+        if converted:
+            converted_file_name = self.report_filename.replace('.ods', self.ext)
+            print(f"converted_file_name: {converted_file_name}")
+            if os.path.exists(converted_file_name):
+                print(f"Removing ODS: {self.report_filename}")
+                os.remove(self.report_filename)
+                self.report_filename = converted_file_name
+                self.report_url = self.report_url.replace('.ods', self.ext)
+                print(f"Updated report_filename: {self.report_filename}")
+                print(f"Updated report_url: {self.report_url}")
+        
+        print(f"Final result: {converted}")
+        return converted
 
     def convert(self):
         with self.task.lock('$report_conversion'):

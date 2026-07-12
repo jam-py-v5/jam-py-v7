@@ -16,3 +16,4 @@ psycopg2
 mysql-connector
 pymssql 
 duckdb
+oracledb
