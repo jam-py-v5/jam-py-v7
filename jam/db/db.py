@@ -4,7 +4,7 @@ import datetime
 from ..common import consts, error_message, json_defaul_handler
 from ..common import to_bytes, to_str
 
-class WhereCondition(object):
+'''class WhereCondition(object):
     def __init__(self, db):
         self.db = db
         self.queries = []
@@ -33,6 +33,44 @@ class WhereCondition(object):
     @property
     def or_query(self):
         result = ' OR '.join(self.queries)
+        return '(%s)' % result, self.params'''
+        
+class WhereCondition(object):
+    def __init__(self, db):
+        self.db = db
+        self.queries = []
+        self.params = []
+
+    @property
+    def next_literal(self):
+        return self.db.value_literal(len(self.params) + 1)
+
+    def add(self, query, param=None):
+        if query:  # GUARD: Do not append empty query strings
+            self.queries.append(query)
+            if not param is None:
+                self.params.append(param)
+
+    def add_or(self, query, param):
+        if query and query != '()':  # GUARD: Do not add empty () OR blocks
+            self.queries.append(query)
+            self.params += param
+
+    @property
+    def where_query(self):
+        # Filter out any lingering empty queries
+        valid_queries = [q for q in self.queries if q and q != '()']
+        result = ' AND '.join(valid_queries)
+        if result:
+            result = ' WHERE ' + result
+        return result, self.params
+
+    @property
+    def or_query(self):
+        valid_queries = [q for q in self.queries if q and q != '()']
+        if not valid_queries:
+            return '', []  # Return empty string instead of '()'
+        result = ' OR '.join(valid_queries)
         return '(%s)' % result, self.params
 
 
@@ -475,7 +513,7 @@ class AbstractDB(object):
         result = '(%s) %s %s' % (result, self.FIELD_AS, self.identifier_case(field.field_name))
         return result
 
-    def fields_clause(self, item, query, fields):
+    '''def fields_clause(self, item, query, fields):
         summary = query.summary
         funcs = query.funcs
         if funcs:
@@ -484,11 +522,6 @@ class AbstractDB(object):
                 functions[key.upper()] = value
         sql = []
         for i, field in enumerate(fields):
-#            if query.client_request:
-#                prohibited, read_only = field.restrictions
-#                if prohibited:
-#                    print(field.field_name)
-#                    continue
             if i == 0 and summary:
                 sql.append(self.identifier_case('count(*)'))
             elif field.master_field:
@@ -518,6 +551,55 @@ class AbstractDB(object):
                         func = functions.get(field.field_name.upper())
                     if func:
                         field_sql = '%s(%s) %s "%s"' % (func.upper(), field_sql, self.FIELD_AS, field_alias)
+                    else:
+                        field_sql = '%s %s %s' % (field_sql, self.FIELD_AS, field_alias)
+                    sql.append(field_sql)
+        sql = ', '.join(sql)
+        return sql'''
+        
+    #new code
+    def fields_clause(self, item, query, fields):
+        summary = query.summary
+        funcs = query.funcs
+        if funcs:
+            functions = {}
+            for key, value in funcs.items():
+                functions[key.upper()] = value
+        sql = []
+        
+        # GUARD: Filter out None values from fields list
+        fields = [f for f in fields if f is not None]
+
+        for i, field in enumerate(fields):
+            if i == 0 and summary:
+                sql.append(self.identifier_case('count(*)'))
+            elif field.master_field:
+                pass
+            elif field.calculated:
+                pass
+            else:
+                field_sql = '%s."%s"' % (self.table_alias(item), field.db_field_name)
+                func = None
+                if funcs:
+                    func = functions.get(field.field_name.upper())
+                    if func:
+                        field_sql = '%s(%s) %s "%s"' % (func.upper(), field_sql, self.FIELD_AS, field.db_field_name)
+                sql.append(field_sql)
+        for i, field in enumerate(fields):
+            if field.calculated:
+                if query.expanded:
+                    sql.append(self.calculated_sql(item, field))
+        if query.expanded:
+            for i, field in enumerate(fields):
+                if i == 0 and summary:
+                    continue
+                field_sql = self.lookup_field_sql(item, field)
+                field_alias = self.field_alias(item, field)
+                if field_sql:
+                    if funcs:
+                        func = functions.get(field.field_name.upper())
+                    if func:
+                        field_sql = '%s(%s) %s "%s"' % (func.upper(), field_sql, field_alias)
                     else:
                         field_sql = '%s %s %s' % (field_sql, self.FIELD_AS, field_alias)
                     sql.append(field_sql)
@@ -566,7 +648,7 @@ class AbstractDB(object):
             ))
             joins[alias] = True
 
-    def from_clause(self, item, query, fields):
+    '''def from_clause(self, item, query, fields):
         result = []
         result.append(self.FROM % (item.table_name, self.table_alias(item)))
         fields = list(fields)
@@ -587,6 +669,35 @@ class AbstractDB(object):
                 if field.lookup_item1:
                     self.add_join1(result, joins, item, field)
                 if field.lookup_item2:
+                    self.add_join2(result, joins, item, field)
+            filters = query.filters
+        return ' '.join(result)'''
+        
+    #new code
+    def from_clause(self, item, query, fields):
+        result = []
+        result.append(self.FROM % (item.table_name, self.table_alias(item)))
+        
+        # GUARD: Filter out None values from fields list
+        fields = [f for f in list(fields) if f is not None]
+        
+        filters = query.filters
+        if filters:
+            for f in filters:
+                if type(f[0]) != list:
+                    field_name, filter_type, value = f
+                    if not value is None:
+                        field = item._field_by_name(field_name)
+                        if field and not field in fields:
+                            fields.append(field)
+        if query.expanded:
+            joins = {}
+            for field in fields:
+                if field and field.lookup_item and field.data_type != consts.KEYS:
+                    self.add_join(result, joins, item, field)
+                if field and field.lookup_item1:
+                    self.add_join1(result, joins, item, field)
+                if field and field.lookup_item2:
                     self.add_join2(result, joins, item, field)
             filters = query.filters
         return ' '.join(result)
@@ -710,7 +821,7 @@ class AbstractDB(object):
                 (self.table_alias(item), item._master_rec_id_db_field_name,
                 conditions.next_literal), query.master_rec_id)
 
-    def where_clause(self, item, query, or_clause=False):
+    '''def where_clause(self, item, query, or_clause=False):
         conditions = WhereCondition(self)
         if or_clause:
             filters = query
@@ -741,6 +852,60 @@ class AbstractDB(object):
                         else:
                             query, param = self.get_condition(item, conditions, field, filter_type, value)
                             conditions.add(query, param)
+        if or_clause:
+            return conditions.or_query
+        else:
+            if not deleted_in_filters and item._deleted_flag:
+                conditions.add('%s."%s" = 0' % (self.table_alias(item), item._deleted_flag_db_field_name))
+            return conditions.where_query'''
+    
+    #new code
+    def where_clause(self, item, query, or_clause=False):
+        conditions = WhereCondition(self)
+        if or_clause:
+            filters = query
+        else:
+            filters = query.filters
+            if item.master:
+                self.add_master_conditions(item, conditions, query)
+        deleted_in_filters = False
+        if filters:
+            for f in filters:
+                if type(f[0]) == list:
+                    sub_query, param = self.where_clause(item, f, True)
+                    # GUARD: Only add sub_query if it contains actual SQL criteria
+                    if sub_query and sub_query != '()':
+                        conditions.add_or(sub_query, param)
+                else:
+                    # SAFE UNPACKING GUARD
+                    if isinstance(f, (list, tuple)):
+                        f_list = list(f)
+                        while len(f_list) < 3:
+                            f_list.append(None)
+                        field_name, filter_type, value = f_list[:3]
+                    else:
+                        continue
+
+                    if not value is None:
+                        field = item._field_by_name(field_name)
+                        
+                        # Skip filters targeting fields that do not exist on 'item'
+                        if field is None:
+                            continue
+
+                        if field_name == item._deleted_flag:
+                            deleted_in_filters = True
+                        if filter_type == consts.FILTER_CONTAINS_ALL:
+                            values = str(value).split()
+                            for val in values:
+                                q_str, param = self.get_condition(item, conditions, field, consts.FILTER_CONTAINS, val)
+                                conditions.add(q_str, param)
+                        elif filter_type in [consts.FILTER_IN, consts.FILTER_NOT_IN] and \
+                            type(value) in [tuple, list] and len(value) == 0:
+                            conditions.add('%s."%s" IN (NULL)' % (self.table_alias(item), item._primary_key_db_field_name))
+                        else:
+                            q_str, param = self.get_condition(item, conditions, field, filter_type, value)
+                            conditions.add(q_str, param)
         if or_clause:
             return conditions.or_query
         else:
@@ -871,15 +1036,36 @@ class AbstractDB(object):
         else:
             result.append(self.get_select_query(item, query))
         return result
-
+    
     def get_select_statement(self, item, query): # depricated
         return self.get_select_query(item, query)
 
+    '''def get_select_query(self, item, query):
+        try:
+            field_list = query.fields
+            if len(field_list):
+                fields = [item._field_by_name(field_name) for field_name in field_list]
+            else:
+                fields = item._fields
+            fields_clause = self.fields_clause(item, query, fields)
+            from_clause = self.from_clause(item, query, fields)
+            where_clause, params = self.where_clause(item, query)
+            group_clause = self.group_clause(item, query, fields)
+            order_clause = self.order_clause(item, query)
+            sql = self.get_select(query, fields_clause, from_clause, where_clause, group_clause, order_clause, fields)
+            return sql, params
+        except Exception as e:
+            item.log.exception(error_message(e))
+            raise'''
+            
+    #new code
     def get_select_query(self, item, query):
         try:
             field_list = query.fields
             if len(field_list):
                 fields = [item._field_by_name(field_name) for field_name in field_list]
+                # GUARD: Remove any unresolved None fields
+                fields = [f for f in fields if f is not None]
             else:
                 fields = item._fields
             fields_clause = self.fields_clause(item, query, fields)

@@ -1753,7 +1753,7 @@ class Item extends AbsrtactItem {
         return options;
     }
 
-    _do_open(offset, async, params, open_empty, callback) {
+    /*_do_open(offset, async, params, open_empty, callback) {
         var self = this,
             i,
             filters,
@@ -1770,6 +1770,48 @@ class Item extends AbsrtactItem {
                 filter.length = 3;
             }
         }
+        if (open_empty) {
+            data = [[], ''];
+            this._do_after_load(data, offset, params, callback);
+        }
+        else if (async) {
+            this.send_request('open', params, function(data) {
+                self._do_after_load(data, offset, params, callback);
+            });
+        } else {
+            data = this.send_request('open', params);
+            this._do_after_load(data, offset, params, callback);
+        }
+    }*/
+	
+	//new code
+	_do_open(offset, async, params, open_empty, callback) {
+        var self = this,
+            i,
+            filters,
+            data;
+        
+        params = $.extend(true, {}, params);
+        
+        // Ensure every filter tuple passed to the server has exactly 3 elements: [field_name, filter_type, value]
+        if (params.__filters && params.__filters.length) {
+            for (i = 0; i < params.__filters.length; i++) {
+                let filter = params.__filters[i];
+                if (filter[0] instanceof Array) {
+                    params.__filters[i] = filter.map(function(or_filter) {
+                        let item = or_filter.slice(0, 3);
+                        while (item.length < 3) item.push(null); // Ensure 3 elements
+                        return item;
+                    });
+                }
+                else {
+                    let item = filter.slice(0, 3);
+                    while (item.length < 3) item.push(null); // Ensure 3 elements
+                    params.__filters[i] = item;
+                }
+            }
+        }
+
         if (open_empty) {
             data = [[], ''];
             this._do_after_load(data, offset, params, callback);

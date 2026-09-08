@@ -520,6 +520,9 @@ function Events16() { // demo.journals.invoices
 	function on_edit_form_created(item) {
 		item.read_only = item.paid.value;
 		item.edit_form.find('.form-footer').remove();
+	
+		item.customer.enable_typeahead = true;
+		item.customer.lookup_search_fields = ['firstname', 'lastname', 'email'];
 	}
 	
 	function on_field_get_text(field) {
@@ -544,10 +547,15 @@ function Events16() { // demo.journals.invoices
 	
 	function on_field_changed(field, lookup_item) {
 		let item = field.owner;
+	
 		if (field.field_name === 'taxrate') {
 			item.apply(function(res) {
 				item.refresh_record();
 			});
+		}
+	
+		if (field.field_name === 'customer' && lookup_item) {
+			field.lookup_value = lookup_item.firstname.value + ' ' + lookup_item.lastname.value;
 		}
 	}
 	

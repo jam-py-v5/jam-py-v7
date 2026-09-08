@@ -10,10 +10,9 @@
         <link href="jam/css/jam.css" rel="stylesheet">
     </head>
     <body>
-        <div class="alert alert-dismissible alert-absolute alert-danger fade show" style="top: 0px; right: 0;">
-            <h4>%(error_type)s</h4>
-            <p>%(message)s</p>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		<div class="alert alert-dismissible alert-absolute alert-danger fade show {{ error_class }}" style="top: 2px; right: 2px;" role="alert">
+            <h4 class="alert-heading">{{ error_type }}</h4>
+            <p>{{ message }} </p>
         </div>
     </body>
 </html>

@@ -1,1 +1,15 @@
+.table tbody tr.row-selected > td {
+    /*font-size: 15px !important;*/
+    /*color: red;*/
+    background-color: #d9dff7;
+}
+
+.table tbody tr.table-focused > td.field-selected {
+    background-color: #a4b3f1 !important;
+}
+
+body {
+    background-color: #f8fafc !important;
+    color: #334155 !important;
+}
 

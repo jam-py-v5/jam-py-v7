@@ -2,7 +2,7 @@ import consts from "./consts.js";
 import Field from "./field.js";
 
 class Filter {
-    constructor (owner, info) {
+	constructor (owner, info) {
         var self = this,
             field;
 
@@ -40,15 +40,27 @@ class Filter {
     }
 
     create_field(field) {
-        var result = new Field();
-        result.set_info(field.get_info());
-        result._read_only = false;
-        result.filter = this;
-        result._value = null;
-        result._lookup_value = null;
-        result.field_kind = consts.FILTER_FIELD;
-        return result;
-    }
+		var result = new Field();
+		result.set_info(field.get_info());
+		result._read_only = false;
+		result.filter = this;
+		result._value = null;
+		result._lookup_value = null;
+		result.field_kind = consts.FILTER_FIELD;
+
+		if (field) {
+			result.lookup_item = field.lookup_item;
+			result.lookup_field = field.lookup_field;
+			result.enable_typeahead = field.enable_typeahead;
+			result.lookup_search_fields = field.lookup_search_fields;
+
+			if (field.on_field_select_value) {
+				result.on_field_select_value = field.on_field_select_value;
+			}
+		}
+
+		return result;
+	}
 
     copy(owner) {
         var result = new Filter(owner, this.get_info());

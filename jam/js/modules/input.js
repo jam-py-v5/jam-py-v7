@@ -283,8 +283,11 @@ class DBAbstractInput {
         }
         else if (this.field.lookup_item && field_type !== consts.FILE){
             if (this.field.enable_typeahead) {
-                this.dropdown = new DropdownTypeahead(this.field,
-                    this.$input, this.field.typeahead_options());
+                //this.dropdown = new DropdownTypeahead(this.field,
+                //    this.$input, this.field.typeahead_options());
+				//new code
+				let options = $.extend({}, this.field.typeahead_options(), { field: this.field });
+					this.dropdown = new DropdownTypeahead(this.field, this.$input, options);
             }
         }
         if (this.field.data_type === consts.BOOLEAN) {
@@ -1157,18 +1160,34 @@ class Dropdown {
     }
 
     blur(e) {
-        this.focused = false
-        if (!this.mousedover && this.shown) {
+        //this.focused = false
+        //if (!this.mousedover && this.shown) {
         //~ if (this.shown) {
-            this.hide();
+        //    this.hide();
+        //}
+        this.focused = false;
+        // FIX 2: Delay dropdown hide slightly on blur so item click event can register
+        var that = this;
+        if (!this.mousedover && this.shown) {
+            setTimeout(function() {
+                if (!that.mousedover) {
+                    that.hide();
+                }
+            }, 150);
         }
     }
 
     click(e) {
-        e.stopPropagation()
-        e.preventDefault()
-        this.select()
-        this.$element.focus()
+        //e.stopPropagation()
+        //e.preventDefault()
+        //this.select()
+        //this.$element.focus()
+		e.stopPropagation();
+        e.preventDefault();
+        this.select(); // Triggers selection
+        if (this.$element) {
+            this.$element.focus();
+        }
     }
 
     mouseenter(e) {
@@ -1229,7 +1248,7 @@ class DropdownList extends Dropdown {
 
 
 class DropdownTypeahead extends Dropdown {
-    constructor(field, element, options) {
+    /*constructor(field, element, options) {
         super(field, element, options);
         this.init();
         this.source = this.options.source;
@@ -1253,7 +1272,382 @@ class DropdownTypeahead extends Dropdown {
 
     enter_pressed() {
         this.field.select_value();
+    }*/
+	
+	constructor(field, element, options) {
+        super(field, element, options);
+        this.init();
+        this.source = this.options.source;
+        this.lookup_item = this.options.lookup_item;
+
+        // Dynamic string matcher for live client-side filtering
+        this.matcher = function(item) {
+            if (!this.query) return true;
+            return item.toLowerCase().indexOf(this.query.toLowerCase().trim()) !== -1;
+        };
+
+        this.listen();
     }
+
+    listen() {
+        super.listen();
+        const self = this;
+
+        // Re-trigger live search on typing, backspacing, or pasting
+        if (this.$element) {
+            this.$element.off('input.typeahead keyup.typeahead').on('input.typeahead keyup.typeahead', function(e) {
+                // Ignore navigation keys (arrows, enter, escape, tab)
+                if ([38, 40, 13, 27, 9, 37, 39].indexOf(e.keyCode) !== -1) {
+                    return;
+                }
+                self.lookup(e);
+            });
+        }
+
+        // HOVER FIX: Clear active class on all siblings when mouse enters any item
+        if (this.$menu) {
+            this.$menu.off('mouseenter.typeahead', 'li').on('mouseenter.typeahead', 'li', function() {
+                self.$menu.find('li, a').removeClass('active');
+                $(this).addClass('active');
+                $(this).find('a').addClass('active');
+            });
+        }
+    }
+
+    lookup(event) {
+        var self = this;
+        clearTimeout(this.timeOut);
+        this.timeOut = setTimeout(function() { self.get_items(event) }, 200);
+    }
+
+    get_items(event) {
+        if (!this.$element) return;
+        
+        // Read live input text on every keystroke
+        this.query = this.$element.val();
+        if (!this.query || this.query.length < (this.options.min_length || 1)) {
+            return this.shown ? this.hide() : this;
+        }
+
+        const self = this;
+        const lookup_item = this.lookup_item || (this.field ? this.field.lookup_item : null);
+
+        if (!lookup_item) return;
+
+        // 1. Get configured search fields
+        const searchFields = (this.field && this.field.lookup_search_fields && this.field.lookup_search_fields.length) ? 
+                              this.field.lookup_search_fields : 
+                              (this.field && this.field.lookup_field ? [this.field.lookup_field] : ['name']);
+
+        // 2. Clone dataset model
+        const clone = lookup_item.copy({ handlers: false });
+        const term = this.query.trim();
+
+        // 3. Trigger cascading / field select value handlers (e.g., on_field_select_value)
+        if (this.field) {
+            if (this.field.owner && this.field.owner.on_field_select_value) {
+                this.field.owner.on_field_select_value(this.field, clone);
+            }
+            if (this.field.on_field_select_value) {
+                this.field.on_field_select_value(this.field, clone);
+            }
+        }
+
+        // 4. Validate search fields exist on lookup model
+        let validFields = searchFields.filter(fName => clone._field_by_name(fName) !== undefined);
+        if (!validFields.length) {
+            validFields = [clone.lookup_field || 'name'];
+        }
+
+        // 5. Build multi-field OR condition for SQL search
+        let searchConditions = [];
+        if (validFields.length === 1) {
+            let cond = {};
+            cond[validFields[0] + '__contains'] = term;
+            searchConditions.push(cond);
+        } else {
+            let orConditions = [];
+            validFields.forEach(fName => {
+                let cond = {};
+                cond[fName + '__contains'] = term;
+                orConditions.push(cond);
+            });
+            searchConditions.push(orConditions);
+        }
+
+        // Combine on_field_select_value conditions + live text search
+        let baseWhere = clone._where_list || [];
+        if (baseWhere.length) {
+            clone._where_list = [baseWhere, searchConditions];
+        } else {
+            clone.set_where(searchConditions);
+        }
+
+        // 6. Execute open query on server
+        clone.open(function() {
+            let items = [];
+            self.map = {}; // Map display labels to primary key IDs
+
+            clone.each(function(rec) {
+                let displayLabel = validFields
+                    .map(fName => {
+                        let f = rec.field_by_name(fName);
+                        return f ? (f.display_text || f.value || '') : '';
+                    })
+                    .filter(Boolean)
+                    .join(' ');
+
+                let pkFieldName = rec._primary_key || 'id';
+                let pkField = rec.field_by_name(pkFieldName);
+                let pkVal = pkField ? pkField.value : rec.rec_no;
+
+                if (displayLabel) {
+                    items.push(displayLabel);
+                    self.map[displayLabel] = pkVal;
+                }
+            });
+
+            // Process items via Typeahead pipeline
+            self.process(items);
+        });
+    }
+
+    highlighter(item) {
+        if (!this.query) return item;
+        var query = this.query.trim().replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
+        return item.replace(new RegExp('(' + query + ')', 'ig'), function ($1, match) {
+            return '<strong class="typeahead-highlight">' + match + '</strong>';
+        });
+    }
+
+    render(items) {
+        var self = this;
+
+        // 1. HARD FILTER: Strip out items that do not match current query
+        var filteredItems = [];
+        if (items && items.length) {
+            for (var k = 0; k < items.length; k++) {
+                if (self.matcher(items[k])) {
+                    filteredItems.push(items[k]);
+                }
+            }
+        }
+
+        // 2. Hide menu if no items remain after filtering
+        if (!filteredItems.length) {
+            return this.hide();
+        }
+
+        // 3. Build DOM nodes only for matching items
+        var nodes = $(filteredItems).map(function (i, item) {
+            var $item = $(self.options.item).data('value', item);
+            
+            // Attach primary key value for select()
+            if (self.map && self.map[item] !== undefined) {
+                $item.data('id-value', self.map[item]);
+            }
+            
+            $item.find('a').html(self.highlighter(item));
+            return $item[0];
+        });
+
+        // Ensure clean menu state
+        this.$menu.empty();
+        
+        // Initial active selection on first render
+        nodes.first().addClass('active');
+        nodes.first().find('a').addClass('active');
+
+        this.$menu.html(nodes);
+        return this.show();
+    }
+
+    // Override move method to sync active classes across <li> and <a>
+    move(e) {
+        if (!this.shown) return;
+
+        switch(e.keyCode) {
+            case 9: // tab
+            case 13: // enter
+            case 27: // escape
+                e.preventDefault();
+                break;
+
+            case 38: // up arrow
+                e.preventDefault();
+                this.prev();
+                break;
+
+            case 40: // down arrow
+                e.preventDefault();
+                this.next();
+                break;
+        }
+        e.stopPropagation();
+    }
+
+    next() {
+        var active = this.$menu.find('.active').first().closest('li');
+        var next = active.next('li');
+
+        if (!next.length) {
+            next = $(this.$menu.find('li')[0]);
+        }
+
+        this.$menu.find('li, a').removeClass('active');
+        next.addClass('active');
+        next.find('a').addClass('active');
+    }
+
+    prev() {
+        var active = this.$menu.find('.active').first().closest('li');
+        var prev = active.prev('li');
+
+        if (!prev.length) {
+            prev = this.$menu.find('li').last();
+        }
+
+        this.$menu.find('li, a').removeClass('active');
+        prev.addClass('active');
+        prev.find('a').addClass('active');
+    }
+
+
+	select() {
+		var $li = this.$menu.find('li.active').first();
+		if (!$li.length) {
+			$li = this.$menu.find('a.active').first().closest('li');
+		}
+		if (!$li.length) {
+			$li = this.$menu.find('li').first();
+		}
+
+		var id_value = $li.data('id-value');
+		if (id_value === undefined && this.map) {
+			var label = $li.text().trim();
+			id_value = this.map[label];
+		}
+
+		if (id_value === undefined || id_value === null) return this.hide();
+
+		var display_text = $li.text().trim();
+		var field = this.field;
+
+		if (field) {
+			var lookup_item = this.lookup_item || field.lookup_item;
+
+			// --- MULTI-SELECT FILTER (consts.FILTER_IN) ---
+			if (field.multi_select) {
+				let current_values = Array.isArray(field.value) ? field.value.slice() : [];
+				let current_lookups = Array.isArray(field.lookup_value) ? field.lookup_value.slice() : [];
+
+				if (current_values.indexOf(id_value) === -1) {
+					current_values.push(id_value);
+					current_lookups.push(display_text);
+				}
+
+				if (field.filter) {
+					field.filter.set_value(current_values, current_lookups);
+					if (field.filter.update) {
+						field.filter.update(field);
+					}
+				} else {
+					field.value = current_values;
+					field.lookup_value = current_lookups;
+				}
+
+				if (this.$element) {
+					this.$element.val('');
+				}
+			} 
+			// --- FILTER FORM FIELD (EQ, RANGE, etc.) ---
+			else if (field.filter) {
+				field.filter.set_value(id_value, display_text);
+
+				if (this.$element) {
+					this.$element.val(display_text);
+				}
+
+				if (field.filter.update) {
+					field.filter.update(field);
+				}
+			} 
+			// --- STANDARD ITEM DATASET FIELD ---
+			else {
+				var owner = field.owner;
+
+				if (owner && owner.is_changing && !owner.is_changing()) {
+					owner.edit();
+				}
+
+				// Core execution function to apply values and fire events
+				var applySelection = function() {
+					// Temporarily disable controls to prevent premature on_field_get_text calls
+					if (owner && owner.disable_controls) {
+						owner.disable_controls();
+					}
+
+					// 1. Assign primary key ID and display text
+					field.value = id_value;
+					field.lookup_value = display_text;
+
+					// 2. Set DOM element text explicitly from selected typeahead item text
+					if (this.$element) {
+						this.$element.val(display_text);
+					}
+
+					if (owner && owner.enable_controls) {
+						owner.enable_controls();
+					}
+
+					// 3. Fire native on_field_changed handler
+					if (owner && owner.on_field_changed) {
+						owner.on_field_changed(field, lookup_item);
+					} else if (field.on_field_changed) {
+						field.on_field_changed(field, lookup_item);
+					}
+
+					if (field.update_controls) {
+						field.update_controls();
+					}
+
+					// Re-apply explicit display text after update_controls to ensure on_field_get_text doesn't overwrite input label
+					if (this.$element) {
+						this.$element.val(display_text);
+					}
+				}.bind(this);
+
+				// Pre-load lookup_item dataset record BEFORE firing event handlers
+				if (lookup_item) {
+					var pk_field = lookup_item._primary_key || 'id';
+					var whereObj = {};
+					whereObj[pk_field] = id_value;
+
+					lookup_item._fields_list = null;
+
+					lookup_item.open({ where: whereObj }, function() {
+						if (lookup_item.record_count()) {
+							lookup_item.first();
+						}
+						applySelection();
+					});
+				} else {
+					applySelection();
+				}
+			}
+		}
+
+		return this.hide();
+	}
+
+    enter_pressed() {
+        if (this.shown) {
+            this.select();
+        } else if (this.field) {
+            this.field.select_value();
+        }
+    }
+	
 }
 
 function highlight(text, search) {

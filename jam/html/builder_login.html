@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <!-- Jam.py V7 standard Bootstrap 5 integration -->
+	<link rel="icon" href="jam/img/builder_logo.png" type="image/png">
+    <link href="jam/css/bs5/bootstrap.css" rel="stylesheet">
+    <link href="jam/css/bs5/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark-core: #0f141c;
+            --bg-dark-card: #171d26;
+            --border-dev: #2b3445;
+            --text-muted: #8b99a8;
+            --accent-glow: #38bdf8;
+        }
+
+        body {
+            background-color: var(--bg-dark-core);
+            color: #f8fafc;
+            font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dev-login-container {
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+        }
+
+        .dev-card {
+            background-color: var(--bg-dark-card);
+            border: 1px solid var(--border-dev);
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.3s ease;
+        }
+
+        /* Highlight border structural error dynamic mapping from Python script */
+        .error-modal-border {
+            border: 1px solid #ef4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+        }
+
+        .logo-wrapper {
+            /* Safely use percentages in modern inline layouts */
+            width: 100%;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-dev);
+            border-top-left-radius: 11px;
+            border-top-right-radius: 11px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .logo-placeholder-box {
+            border: 2px dashed #3a4659;
+            padding: 8px 24px;
+            border-radius: 6px;
+        }
+
+        .form-control-dev {
+            background-color: #0b0f15 !important;
+            border: 1px solid var(--border-dev) !important;
+            color: #f8fafc !important;
+            font-size: 0.9rem;
+            padding: 0.6rem 0.75rem;
+        }
+
+        .form-control-dev:focus {
+            border-color: var(--accent-glow) !important;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15) !important;
+        }
+
+        .input-group-text-dev {
+            background-color: #0b0f15 !important;
+            border: 1px solid var(--border-dev) !important;
+            color: var(--text-muted) !important;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .input-group-text-dev:hover {
+            color: #f8fafc !important;
+        }
+
+        .dev-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-dev-action {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            border: none;
+            color: white;
+            padding: 0.65rem;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-dev-action:hover {
+            opacity: 0.95;
+            color: white;
+        }
+
+        .terminal-alert {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dev-login-container">
+    <div class="card dev-card {{ error }}">
+        
+        <!-- LOGO PLACEHOLDER SPACE -->
+        <div class="logo-wrapper py-1">
+            <!-- Replace this internal block with your <img> tag when ready -->
+            <img src="jam/img/builder_logo.png" alt="Jam.py Logo" style="max-height: 150px; border-radius: 4px !important;">
+            <!-- <div class="logo-placeholder-box">
+                <i class="bi bi-braces-asterisk me-2"></i>[ JAM.PY LOGO PLACEHOLDER ]
+            </div>-->
+        </div>
+
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <span class="badge bg-dark border border-secondary px-3 py-2 text-info mb-2">AUTH_REQUIRED</span>
+                <p class="small text-secondary mb-0">{{ form_title }}</p>
+            </div>
+
+            {% if error %}
+            <div class="alert terminal-alert d-flex align-items-center p-3 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                <div>
+                    <strong>CRITICAL_ERR:</strong> Invalid credentials.
+                </div>
+            </div>
+            {% endif %}
+
+            <form action="" method="POST" autocomplete="off">
+                <div class="mb-3">
+                    <label for="login" class="form-label dev-label">{{ login_text }}</label>
+                    <input type="text" class="form-control form-control-dev" id="login" name="login" value="{{ login }}" required autofocus placeholder="username">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="password" class="form-label dev-label">{{ password_text }}</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control form-control-dev" id="password" name="password" required placeholder="••••••••">
+                        <span class="input-group-text input-group-text-dev" id="togglePassword">
+                            <i class="bi bi-eye-fill" id="toggleIcon"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-dev-action w-100 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-terminal me-2"></i> Initialize Session
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <small class="text-secondary" style="font-size: 11px;">Powered by Jam.py Core Engine V7</small>
+    </div>
+</div>
+
+<!-- JS Dependencies -->
+<script src="jam/js/jquery.js"></script>
+<script src="jam/js/bs5/bootstrap.bundle.js"></script>
+<script>
+    // Modern Show/Hide Password functionality without cross-library dependency conflicts
+    $(document).ready(function() {
+        $('#togglePassword').on('click', function() {
+            const passwordInput = $('#password');
+            const icon = $('#toggleIcon');
+            
+            if (passwordInput.attr('type') === 'password') {
+                passwordInput.attr('type', 'text');
+                icon.removeClass('bi bi-eye-fill').addClass('bi bi-eye-slash-fill');
+            } else {
+                passwordInput.attr('type', 'password');
+                icon.removeClass('bi bi-eye-slash-fill').addClass('bi bi-eye-fill');
+            }
+        });
+    });
+</script>
+</body>
+</html>

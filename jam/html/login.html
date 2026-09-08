@@ -1,205 +1,846 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-    <!-- Jam.py V7 standard Bootstrap 5 integration -->
-	<link rel="icon" href="jam/img/builder_logo.png" type="image/png">
-    <link href="jam/css/bs5/bootstrap.css" rel="stylesheet">
-    <link href="jam/css/bs5/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark-core: #0f141c;
-            --bg-dark-card: #171d26;
-            --border-dev: #2b3445;
-            --text-muted: #8b99a8;
-            --accent-glow: #38bdf8;
-        }
 
-        body {
-            background-color: var(--bg-dark-core);
-            color: #f8fafc;
-            font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+	<title>Jam.py V7 app - Login</title>
+	<link href="jam/css/bs5/bootstrap.css" rel="stylesheet">
+	<link href="jam/css/bs5/bootstrap-icons.css" rel="stylesheet">
+	<link href="css/project.css" rel="stylesheet">
 
-        .dev-login-container {
-            width: 100%;
-            max-width: 440px;
-            padding: 20px;
-        }
+	<style>
+		:root {
+			--login-bg: #090b10;
+			--login-surface: #11141b;
+			--login-surface-2: #161a22;
+			--login-border: rgba(255, 255, 255, 0.09);
 
-        .dev-card {
-            background-color: var(--bg-dark-card);
-            border: 1px solid var(--border-dev);
-            border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-            transition: border-color 0.3s ease;
-        }
+			--login-text: #f8fafc;
+			--login-text-secondary: #a7b0c0;
+			--login-text-muted: #717b8c;
 
-        /* Highlight border structural error dynamic mapping from Python script */
-        .error-modal-border {
-            border: 1px solid #ef4444 !important;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
-        }
+			--login-primary: #4f8cff;
+			--login-primary-hover: #6a9dff;
+			--login-primary-glow: rgba(79, 140, 255, 0.25);
 
-        .logo-wrapper {
-            /* Safely use percentages in modern inline layouts */
-            width: 100%;
-            min-height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid var(--border-dev);
-            border-top-left-radius: 11px;
-            border-top-right-radius: 11px;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
+			--login-danger: #ef6464;
+		}
 
-        .logo-placeholder-box {
-            border: 2px dashed #3a4659;
-            padding: 8px 24px;
-            border-radius: 6px;
-        }
+		html,
+		body {
+			min-height: 100%;
+		}
 
-        .form-control-dev {
-            background-color: #0b0f15 !important;
-            border: 1px solid var(--border-dev) !important;
-            color: #f8fafc !important;
-            font-size: 0.9rem;
-            padding: 0.6rem 0.75rem;
-        }
+		body.admin-portal-login {
+			margin: 0;
+			min-height: 100vh;
+			background: var(--login-bg);
+			color: var(--login-text);
+			font-family:
+				system-ui,
+				-apple-system,
+				BlinkMacSystemFont,
+				"Segoe UI",
+				Roboto,
+				Helvetica,
+				Arial,
+				sans-serif;
+		}
 
-        .form-control-dev:focus {
-            border-color: var(--accent-glow) !important;
-            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15) !important;
-        }
+		/* =========================================================
+		   MAIN LAYOUT
+		========================================================= */
 
-        .input-group-text-dev {
-            background-color: #0b0f15 !important;
-            border: 1px solid var(--border-dev) !important;
-            color: var(--text-muted) !important;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
+		.admin-portal-login .login-page {
+			min-height: 100vh;
+			background:
+				radial-gradient(
+					circle at 15% 20%,
+					rgba(59, 130, 246, 0.08),
+					transparent 32%
+				),
+				radial-gradient(
+					circle at 85% 80%,
+					rgba(99, 102, 241, 0.06),
+					transparent 30%
+				),
+				var(--login-bg);
+		}
 
-        .input-group-text-dev:hover {
-            color: #f8fafc !important;
-        }
+		/* =========================================================
+		   LEFT BRANDING PANEL
+		========================================================= */
 
-        .dev-label {
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
+		.admin-portal-login .brand-panel {
+			position: relative;
+			min-height: 100vh;
+			overflow: hidden;
 
-        .btn-dev-action {
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-            border: none;
-            color: white;
-            padding: 0.65rem;
-            font-weight: 600;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            transition: opacity 0.2s;
-        }
+			background:
+				radial-gradient(
+					circle at 25% 25%,
+					rgba(79, 140, 255, 0.25),
+					transparent 30%
+				),
+				radial-gradient(
+					circle at 80% 75%,
+					rgba(99, 102, 241, 0.16),
+					transparent 35%
+				),
+				linear-gradient(
+					145deg,
+					#101b35 0%,
+					#0d162b 45%,
+					#090f1d 100%
+				);
+		}
 
-        .btn-dev-action:hover {
-            opacity: 0.95;
-            color: white;
-        }
+		.admin-portal-login .brand-panel::before {
+			content: "";
+			position: absolute;
+			width: 520px;
+			height: 520px;
+			border: 1px solid rgba(255, 255, 255, 0.06);
+			border-radius: 50%;
+			top: -220px;
+			left: -180px;
+		}
 
-        .terminal-alert {
-            background-color: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            color: #fca5a5;
-            font-size: 0.85rem;
-            border-radius: 6px;
-        }
-    </style>
+		.admin-portal-login .brand-panel::after {
+			content: "";
+			position: absolute;
+			width: 700px;
+			height: 700px;
+			border: 1px solid rgba(255, 255, 255, 0.04);
+			border-radius: 50%;
+			bottom: -420px;
+			right: -300px;
+		}
+
+		.admin-portal-login .brand-content {
+			position: relative;
+			z-index: 2;
+			max-width: 560px;
+		}
+
+		.admin-portal-login .brand-logo {
+			display: inline-flex;
+			align-items: center;
+			gap: 10px;
+
+			color: #ffffff;
+			font-size: 1rem;
+			font-weight: 700;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+		}
+
+		.admin-portal-login .brand-logo-icon {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+
+			width: 38px;
+			height: 38px;
+
+			border-radius: 10px;
+
+			color: #ffffff;
+
+			background: rgba(79, 140, 255, 0.18);
+			border: 1px solid rgba(124, 164, 255, 0.25);
+
+			box-shadow:
+				0 8px 30px rgba(0, 0, 0, 0.25),
+				inset 0 1px 0 rgba(255, 255, 255, 0.08);
+		}
+
+		.admin-portal-login .brand-title {
+			font-size: clamp(2.5rem, 4vw, 4.2rem);
+			line-height: 1.05;
+			letter-spacing: -0.04em;
+			font-weight: 750;
+			margin-bottom: 1.5rem;
+		}
+
+		.admin-portal-login .brand-description {
+			color: #aeb9cc;
+			font-size: 1.08rem;
+			line-height: 1.75;
+			max-width: 500px;
+		}
+
+		.admin-portal-login .feature-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12px;
+			margin-top: 2.5rem;
+		}
+
+		.admin-portal-login .feature-item {
+			display: flex;
+			align-items: center;
+			gap: 9px;
+
+			padding: 10px 14px;
+
+			color: #cbd5e1;
+			font-size: 0.86rem;
+
+			background: rgba(255, 255, 255, 0.035);
+			border: 1px solid rgba(255, 255, 255, 0.07);
+			border-radius: 10px;
+
+			backdrop-filter: blur(8px);
+		}
+
+		.admin-portal-login .feature-item i {
+			color: #76a7ff;
+		}
+
+		/* =========================================================
+		   RIGHT LOGIN AREA
+		========================================================= */
+
+		.admin-portal-login .login-panel {
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			padding: 40px 24px;
+
+			background:
+				radial-gradient(
+					circle at 50% 0%,
+					rgba(79, 140, 255, 0.05),
+					transparent 38%
+				),
+				var(--login-bg);
+		}
+
+		.admin-portal-login .login-wrapper {
+			width: 100%;
+			max-width: 440px;
+		}
+
+		/* =========================================================
+		   LOGIN CARD
+		========================================================= */
+
+		.admin-portal-login .login-card {
+			padding: 40px;
+
+			background:
+				linear-gradient(
+					145deg,
+					rgba(25, 29, 38, 0.96),
+					rgba(14, 17, 23, 0.98)
+				);
+
+			border: 1px solid var(--login-border);
+			border-radius: 20px;
+
+			box-shadow:
+				0 30px 80px rgba(0, 0, 0, 0.45),
+				0 0 0 1px rgba(255, 255, 255, 0.015) inset;
+
+			backdrop-filter: blur(18px);
+		}
+
+		.admin-portal-login .login-brand-mobile {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			width: 54px;
+			height: 54px;
+
+			margin: 0 auto 22px;
+
+			color: #ffffff;
+			font-size: 1.4rem;
+
+			background:
+				linear-gradient(
+					145deg,
+					#326fd7,
+					#4f8cff
+				);
+
+			border-radius: 15px;
+
+			box-shadow:
+				0 12px 30px rgba(50, 111, 215, 0.28);
+		}
+
+		.admin-portal-login .login-heading {
+			margin-bottom: 7px;
+
+			color: var(--login-text);
+			font-size: 1.8rem;
+			font-weight: 700;
+			letter-spacing: -0.025em;
+		}
+
+		.admin-portal-login .login-subheading {
+			margin-bottom: 30px;
+
+			color: var(--login-text-secondary);
+			font-size: 0.92rem;
+			line-height: 1.6;
+		}
+
+		/* =========================================================
+		   FORM CONTROLS
+		========================================================= */
+
+		.admin-portal-login .form-floating {
+			position: relative;
+		}
+
+		.admin-portal-login .form-floating > .form-control {
+			min-height: 62px;
+
+			padding: 1.1rem 1rem 0.45rem;
+
+			color: var(--login-text) !important;
+
+			background-color: var(--login-surface-2) !important;
+
+			border: 1px solid var(--login-border) !important;
+			border-radius: 12px;
+
+			box-shadow: none !important;
+
+			transition:
+				border-color 0.2s ease,
+				background-color 0.2s ease,
+				box-shadow 0.2s ease;
+		}
+
+		.admin-portal-login .form-floating > .form-control:hover {
+			border-color: rgba(255, 255, 255, 0.15) !important;
+		}
+
+		.admin-portal-login .form-floating > .form-control:focus {
+			background-color: #191e28 !important;
+
+			border-color: var(--login-primary) !important;
+
+			box-shadow:
+				0 0 0 3px var(--login-primary-glow) !important;
+		}
+
+		.admin-portal-login .form-floating > label {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+
+			padding: 1.1rem 1rem;
+
+			color: var(--login-text-muted);
+
+			transition:
+				transform 0.2s ease,
+				color 0.2s ease;
+		}
+
+		.admin-portal-login .form-floating > label i {
+			font-size: 0.95rem;
+		}
+
+		.admin-portal-login
+			.form-floating
+			> .form-control:focus
+			~ label,
+		.admin-portal-login
+			.form-floating
+			> .form-control:not(:placeholder-shown)
+			~ label {
+			color: var(--login-primary);
+		}
+
+		.admin-portal-login
+			.form-floating
+			> .form-control:focus
+			~ label
+			i,
+		.admin-portal-login
+			.form-floating
+			> .form-control:not(:placeholder-shown)
+			~ label
+			i {
+			color: var(--login-primary);
+		}
+
+		/* Remove browser autofill light background */
+		.admin-portal-login input:-webkit-autofill,
+		.admin-portal-login input:-webkit-autofill:hover,
+		.admin-portal-login input:-webkit-autofill:focus {
+			-webkit-text-fill-color: #f8fafc !important;
+			-webkit-box-shadow: 0 0 0 1000px #161a22 inset !important;
+			transition: background-color 9999s ease-in-out 0s;
+		}
+
+		/* =========================================================
+		   PASSWORD TOGGLE
+		========================================================= */
+
+		.admin-portal-login .password-toggle {
+			position: absolute;
+			top: 50%;
+			right: 10px;
+
+			width: 40px;
+			height: 40px;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			transform: translateY(-50%);
+
+			color: #778196 !important;
+
+			border: 0;
+			border-radius: 8px;
+
+			z-index: 5;
+
+			transition:
+				color 0.2s ease,
+				background-color 0.2s ease;
+		}
+
+		.admin-portal-login .password-toggle:hover {
+			color: #ffffff !important;
+			background-color: rgba(255, 255, 255, 0.06);
+		}
+
+		/* =========================================================
+		   OPTIONS
+		========================================================= */
+
+		.admin-portal-login .login-options {
+			margin-top: 14px;
+			margin-bottom: 26px;
+		}
+
+		.admin-portal-login .form-check-input {
+			width: 17px;
+			height: 17px;
+
+			margin-top: 0;
+
+			background-color: #171b23;
+			border-color: #3a4250;
+		}
+
+		.admin-portal-login .form-check-input:checked {
+			background-color: var(--login-primary);
+			border-color: var(--login-primary);
+		}
+
+		.admin-portal-login .form-check-input:focus {
+			border-color: var(--login-primary);
+			box-shadow: 0 0 0 3px var(--login-primary-glow);
+		}
+
+		.admin-portal-login .form-check-label {
+			padding-left: 5px;
+
+			color: var(--login-text-secondary);
+			font-size: 0.84rem;
+
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.admin-portal-login .forgot-password {
+			color: #82adff;
+
+			font-size: 0.84rem;
+			font-weight: 500;
+
+			text-decoration: none;
+
+			transition: color 0.2s ease;
+		}
+
+		.admin-portal-login .forgot-password:hover {
+			color: #a9c7ff;
+		}
+
+		/* =========================================================
+		   LOGIN BUTTON
+		========================================================= */
+
+		.admin-portal-login .login-button {
+			min-height: 54px;
+
+			color: #ffffff !important;
+
+			background:
+				linear-gradient(
+					135deg,
+					#3f7fea,
+					#5b91f6
+				) !important;
+
+			border: 0 !important;
+			border-radius: 11px;
+
+			font-size: 0.94rem;
+			font-weight: 650;
+
+			box-shadow:
+				0 10px 25px rgba(55, 113, 224, 0.22);
+
+			transition:
+				transform 0.2s ease,
+				box-shadow 0.2s ease,
+				filter 0.2s ease;
+		}
+
+		.admin-portal-login .login-button:hover {
+			filter: brightness(1.08);
+
+			transform: translateY(-1px);
+
+			box-shadow:
+				0 14px 30px rgba(55, 113, 224, 0.3);
+		}
+
+		.admin-portal-login .login-button:active {
+			transform: translateY(0);
+		}
+
+		/* =========================================================
+		   ERROR MESSAGE
+		========================================================= */
+
+		.admin-portal-login .login-error {
+			color: #ffb4b4;
+
+			background:
+				rgba(239, 100, 100, 0.08);
+
+			border: 1px solid rgba(239, 100, 100, 0.2);
+			border-radius: 11px;
+		}
+
+		.admin-portal-login .login-error i {
+			color: var(--login-danger);
+		}
+
+		/* =========================================================
+		   FOOTER
+		========================================================= */
+
+		.admin-portal-login .login-footer {
+			margin-top: 28px;
+
+			color: var(--login-text-muted);
+
+			font-size: 0.75rem;
+			line-height: 1.6;
+		}
+
+		.admin-portal-login .security-status {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+
+			margin-bottom: 7px;
+
+			color: #7e8ba0;
+		}
+
+		.admin-portal-login .security-status i {
+			color: #55c98a;
+			font-size: 0.65rem;
+		}
+
+		/* =========================================================
+		   MOBILE
+		========================================================= */
+
+		@media (max-width: 991.98px) {
+			.admin-portal-login .login-page {
+				min-height: 100vh;
+			}
+
+			.admin-portal-login .login-panel {
+				min-height: 100vh;
+				padding: 25px 18px;
+			}
+
+			.admin-portal-login .login-card {
+				padding: 30px 24px;
+				border-radius: 18px;
+			}
+		}
+
+		@media (max-width: 575.98px) {
+			.admin-portal-login .login-panel {
+				padding: 16px;
+			}
+
+			.admin-portal-login .login-card {
+				padding: 28px 20px;
+				border-radius: 16px;
+			}
+
+			.admin-portal-login .login-heading {
+				font-size: 1.55rem;
+			}
+
+			.admin-portal-login .login-subheading {
+				font-size: 0.86rem;
+			}
+
+			.admin-portal-login .login-options {
+				align-items: flex-start !important;
+				gap: 12px;
+			}
+		}
+
+		/* =========================================================
+		   SMALL UTILITY
+		========================================================= */
+
+		.admin-portal-login .select-none {
+			user-select: none;
+		}
+	</style>
 </head>
-<body>
 
-<div class="dev-login-container">
-    <div class="card dev-card {{ error }}">
-        
-        <!-- LOGO PLACEHOLDER SPACE -->
-        <div class="logo-wrapper py-1">
-            <!-- Replace this internal block with your <img> tag when ready -->
-            <img src="jam/img/builder_logo.png" alt="Jam.py Logo" style="max-height: 150px; border-radius: 4px !important;">
-            <!-- <div class="logo-placeholder-box">
-                <i class="bi bi-braces-asterisk me-2"></i>[ JAM.PY LOGO PLACEHOLDER ]
-            </div>-->
+<body class="admin-portal-login">
+	<div class="container-fluid p-0 login-page">
+	<div class="row g-0 min-vh-100">
+    <div class="col-lg-6 d-none d-lg-flex brand-panel">
+        <div class="container-fluid p-5 d-flex flex-column">
+			<div>
+				<div class="brand-logo">
+					<span class="brand-logo-icon">
+						<i class="bi bi-shield-lock-fill"></i>
+					</span>
+					<span>Jam.py V7 Core</span>
+				</div>
+			</div>
+			<div class="brand-content my-auto">
+
+				<div class="mb-4">
+					<span class="text-uppercase fw-semibold"
+						  style="
+							  color: #79a8ff;
+							  font-size: .72rem;
+							  letter-spacing: .14em;
+						  ">
+						Low code Framework
+					</span>
+				</div>
+
+				<h1 class="brand-title">
+					Login page for Jam.py V7 app
+				</h1>
+
+				<p class="brand-description mb-0">
+					Manage customer relations, review audit trails,
+					resolve support requests, and monitor platform
+					performance from one secure administrative workspace.
+				</p>
+				<div class="feature-list">
+					<div class="feature-item">
+						<i class="bi bi-lightning-charge-fill"></i>
+						<span>Optimized Workflow</span>
+					</div>
+
+					<div class="feature-item">
+						<i class="bi bi-shield-check"></i>
+						<span>Secure Sessions</span>
+					</div>
+
+					<div class="feature-item">
+						<i class="bi bi-activity"></i>
+						<span>Real-time Monitoring</span>
+					</div>
+				</div>
+			</div>
+
+            <div class="small text-secondary opacity-75">
+                Secure administrative environment
+            </div>
         </div>
+    </div>
 
-        <div class="card-body p-4">
-            <div class="text-center mb-4">
-                <span class="badge bg-dark border border-secondary px-3 py-2 text-info mb-2">AUTH_REQUIRED</span>
-                <p class="small text-secondary mb-0">{{ form_title }}</p>
-            </div>
-
-            {% if error %}
-            <div class="alert terminal-alert d-flex align-items-center p-3 mb-4" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+    <div class="col-lg-6 login-panel">
+        <div class="login-wrapper">
+            <div class="login-card">
+                <div class="d-lg-none text-center">
+                    <div class="login-brand-mobile">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <div class="small text-uppercase fw-semibold text-secondary mb-4"
+                         style="letter-spacing: .12em;">
+                        CoreAdmin v7
+                    </div>
+                </div>
                 <div>
-                    <strong>CRITICAL_ERR:</strong> Invalid credentials.
-                </div>
-            </div>
-            {% endif %}
+                    <h2 class="login-heading">
+                        Welcome back
+                    </h2>
 
-            <form action="" method="POST" autocomplete="off">
-                <div class="mb-3">
-                    <label for="login" class="form-label dev-label">{{ login_text }}</label>
-                    <input type="text" class="form-control form-control-dev" id="login" name="login" value="{{ login }}" required autofocus placeholder="username">
+                    <p class="login-subheading">
+                        Sign in with your credentials
+                        to continue.
+                    </p>
                 </div>
-                
-                <div class="mb-4">
-                    <label for="password" class="form-label dev-label">{{ password_text }}</label>
-                    <div class="input-group">
-                        <input type="password" class="form-control form-control-dev" id="password" name="password" required placeholder="••••••••">
-                        <span class="input-group-text input-group-text-dev" id="togglePassword">
-                            <i class="bi bi-eye-fill" id="toggleIcon"></i>
+                <div id="login-error-alert"
+                     class="alert login-error d-none mb-4 py-3"
+                     role="alert">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                        <span id="error-message-text">
+                            {{ error }}
                         </span>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-dev-action w-100 d-flex align-items-center justify-content-center">
-                    <i class="bi bi-terminal me-2"></i> Initialize Session
-                </button>
-            </form>
+                <form id="admin-login-form"
+                      method="POST"
+                      action="">
+                    <div class="form-floating mb-3">
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="login"
+                            name="login"
+                            placeholder="Email Address"
+                            value="{{ login }}"
+                            required
+                            autocomplete="username">
+                        <label for="login">
+                            <i class="bi bi-person"></i>
+                            Email Address
+                        </label>
+                    </div>
+                    <div class="form-floating position-relative">
+                        <input
+                            type="password"
+                            class="form-control pe-5"
+                            id="password"
+                            name="password"
+                            placeholder="Password"
+                            required
+                            autocomplete="current-password">
+
+                        <label for="password">
+                            <i class="bi bi-lock"></i>
+                            Password
+                        </label>
+                        <button
+                            type="button"
+                            id="toggle-password-visibility"
+                            class="btn password-toggle"
+                            tabindex="-1"
+                            aria-label="Show password">
+                            <i class="bi bi-eye" id="toggle-icon"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center login-options">
+                        <div class="form-check d-flex align-items-center">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="rememberMe">
+                            <label
+                                class="form-check-label"
+                                for="rememberMe">
+                                Keep me logged in
+                            </label>
+
+                        </div>
+                        <a
+							href="#"
+                            class="forgot-password">
+                            Forgot password?
+                        </a>
+                    </div>
+                    <button
+                        type="submit"
+                        class="btn login-button w-100">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        Log in
+                    </button>
+                </form>
+                <div class="login-footer text-center">
+                    <div class="security-status justify-content-center">
+                        <i class="bi bi-circle-fill"></i>
+                        <span>Secure connection</span>
+                    </div>
+                    <div>
+                        &copy; 2026 CoreAdmin.
+                        All administrative security events are audited.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="text-center mt-3">
-        <small class="text-secondary" style="font-size: 11px;">Powered by Jam.py Core Engine V7</small>
-    </div>
-</div>
+	</div>
+	</div>
 
-<!-- JS Dependencies -->
-<script src="jam/js/jquery.js"></script>
-<script src="jam/js/bs5/bootstrap.bundle.js"></script>
-<script>
-    // Modern Show/Hide Password functionality without cross-library dependency conflicts
-    $(document).ready(function() {
-        $('#togglePassword').on('click', function() {
-            const passwordInput = $('#password');
-            const icon = $('#toggleIcon');
-            
-            if (passwordInput.attr('type') === 'password') {
-                passwordInput.attr('type', 'text');
-                icon.removeClass('bi bi-eye-fill').addClass('bi bi-eye-slash-fill');
-            } else {
-                passwordInput.attr('type', 'password');
-                icon.removeClass('bi bi-eye-slash-fill').addClass('bi bi-eye-fill');
-            }
-        });
-    });
-</script>
+	<script src="jam/js/jquery.js"></script>
+	<script src="jam/js/bs5/bootstrap.bundle.js"></script>
+	<script>
+		$(document).ready(function () {
+			$('#toggle-password-visibility').on('click', function () {
+				const passwordField = $('#password');
+				const icon = $('#toggle-icon');
+				const button = $(this);
+
+				if (passwordField.attr('type') === 'password') {
+
+					passwordField.attr('type', 'text');
+
+					icon
+						.removeClass('bi-eye')
+						.addClass('bi-eye-slash');
+
+					button.attr('aria-label', 'Hide password');
+
+				} else {
+
+					passwordField.attr('type', 'password');
+
+					icon
+						.removeClass('bi-eye-slash')
+						.addClass('bi-eye');
+
+					button.attr('aria-label', 'Show password');
+				}
+
+			});
+
+			const backendError = $('#error-message-text').text().trim();
+
+			if (backendError !== '') {
+				$('#login-error-alert').removeClass('d-none');
+			}
+
+			$('#login').on('keydown', function (event) {
+
+				if (event.key === 'Enter') {
+					$('#password').trigger('focus');
+				}
+
+			});
+		});
+	</script>
+
 </body>
 </html>

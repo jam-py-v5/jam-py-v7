@@ -265,5 +265,47 @@ p.search {
     border-top: 1px solid var(--bs-border-color);    
 }
 
+@media screen and (max-width: 800px) {
+    /* Unbind the HTML table grid into standard stacked block elements */
+    #admin .table-fixed,
+    #admin .table-fixed > tbody,
+    #admin .table-fixed > tbody > tr,
+    #admin .table-fixed > tbody > tr > td {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        vertical-align: top !important;
+        float: none !important;
+    }
 
+    /* Lock left panel container */
+    #left-panel {
+        position: relative !important;
+        top: 0 !important;
+        margin-top: 0 !important;
+        height: auto !important;
+    }
 
+    /* Lock tree panel height so node expansions scroll internally */
+    #left-panel #tree-panel,
+    #left-panel #tree-panel .dbtree {
+        height: 350px !important;
+        max-height: 350px !important;
+        min-height: 350px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        position: relative !important;
+        top: 0 !important;
+    }
+
+    /* Prevent center/right panels from shifting */
+    #center-panel {
+        padding-top: 1rem !important;
+        clear: both !important;
+    }
+
+    #right-panel {
+        height: auto !important;
+        padding: 1rem !important;
+    }
+}

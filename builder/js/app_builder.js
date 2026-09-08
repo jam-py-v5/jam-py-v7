@@ -221,6 +221,7 @@ function Events1() { // app_builder
 	function resize_elements(task) {
 		var height = $(window).height() -
 			($('#task-tabs').offset().top + $('#task-tabs').outerHeight(true)) - 30;
+		
 		resize_panels(task, height);
 		resize_editor(task, height);
 		if ($('ul#task-tabs li button.active').attr('id') === 'admin') {
@@ -230,7 +231,7 @@ function Events1() { // app_builder
 	}
 	
 	function resize_panels(task, height) {
-		var dbtree = $('#left-panel #tree-panel .dbtree');
+		/*var dbtree = $('#left-panel #tree-panel .dbtree');
 		if (task.tree_panel.outerHeight(true) !== height) {
 			dbtree.hide();
 			task.tree_panel.outerHeight(height, true);
@@ -239,6 +240,28 @@ function Events1() { // app_builder
 			dbtree.outerHeight(task.tree_panel.height(), true);
 			dbtree.show();
 			task.btns_panel.outerHeight(task.right_panel.height(), true);
+		}*/
+	
+		var dbtree = $('#left-panel #tree-panel .dbtree');
+	
+		if (window.innerWidth <= 800) {
+			// Clear dynamic pixel heights set by jQuery/Jam.py
+			task.tree_panel.css({'height': '', 'min-height': '', 'max-height': ''});
+			task.right_panel.css({'height': '', 'min-height': '', 'max-height': ''});
+			if (task.btns_panel) task.btns_panel.css({'height': '', 'min-height': '', 'max-height': ''});
+			dbtree.css({'height': '', 'min-height': '', 'max-height': ''});
+			dbtree.show();
+			return; // Exit early to prevent layout thrashing
+		}
+	
+		if (task.tree_panel.outerHeight(true) !== height) {
+			dbtree.hide();
+			task.tree_panel.outerHeight(height, true);
+			task.right_panel.outerHeight(height, true);
+			height = task.tree_panel.height();
+			dbtree.outerHeight(task.tree_panel.height(), true);
+			dbtree.show();
+			if (task.btns_panel) task.btns_panel.outerHeight(task.right_panel.height(), true);
 		}
 	}
 	
@@ -3955,7 +3978,6 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 	
 	function init_editor(task) {
 		if (!window.monacoReady) {
-			// Delay initialization until Monaco loads
 			require(['vs/editor/editor.main'], function () {
 				do_init_editor(task);
 			});
@@ -4019,9 +4041,83 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 				return;
 			}
 		});
+	
+		//search inside tabs
+		task.code_editor.on('input', '.tab-tree-search', function() {
+			let query = $(this).val().toLowerCase().trim();
+			let activeTabId = task.code_editor.find('#editor-tabs > .nav > li button.active').attr('id');
+			let $activeTree = task.code_editor.find('#editor-tabs #info-grids div.info-tree.' + activeTabId);
+	
+			if (!query) {
+				// Reset all list items back to default layout state
+				$activeTree.find('li').show();
+				return;
+			}
+	
+			// Hide all items initially
+			$activeTree.find('li').hide();
+	
+			// Only show items whose direct text matches the search query
+			$activeTree.find('span.tree-text').each(function() {
+				let $span = $(this);
+				let text = ($span.data('name') || $span.text()).toLowerCase();
+	
+				if (text.indexOf(query) !== -1) {
+					// Show only the matching line item (without forcing parent container expansion)
+					$span.closest('li').show();
+				}
+			});
+		});
 	}
 	
 	function select_editor(task, tag) {
+		/*var info = task.tabs[tag],
+			model;
+	
+		if (task.editor && task.currentTag) {
+			const currentInfo = task.tabs[task.currentTag];
+			if (currentInfo) {
+				currentInfo.viewState = task.editor.saveViewState();
+			}
+		}
+	
+		if (task.editor === undefined) {
+			init_editor(task);
+		}
+	
+		if (!info.model) {
+			var language = "plaintext";
+			if (info.ext === "py") language = "python";
+			else if (info.ext === "js") language = "javascript";
+			else if (info.ext === "html") language = "html";
+			else if (info.ext === "css") language = "css";
+	
+			model = monaco.editor.createModel(info.doc, language);
+	
+			info.model = model;
+	
+			create_info_tabs(task, tag);
+			$(task.editor.getDomNode()).focus();
+		} else {
+			model = info.model;
+		}
+	
+		task.editor.setModel(model);
+	
+		if (typeof info.initialVersionId === 'undefined') {
+			info.initialVersionId = info.model.getAlternativeVersionId();
+		}
+	
+		if (info.viewState) {
+			task.editor.restoreViewState(info.viewState);
+		}
+		task.editor.focus();
+	
+		show_info_tabs(task, info);
+		update_buttons(task);
+		task.resize_elements(task);
+	
+		task.currentTag = tag;*/
 		var info = task.tabs[tag],
 			model;
 	
@@ -4038,7 +4134,6 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 		}
 	
 		if (!info.model) {
-			// Pick language based on extension
 			var language = "plaintext";
 			if (info.ext === "py") language = "python";
 			else if (info.ext === "js") language = "javascript";
@@ -4046,8 +4141,6 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 			else if (info.ext === "css") language = "css";
 	
 			model = monaco.editor.createModel(info.doc, language);
-	
-			// Cache model for reuse
 			info.model = model;
 	
 			create_info_tabs(task, tag);
@@ -4056,15 +4149,16 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 			model = info.model;
 		}
 	
-		//task.initialVersionId = task.editor.getModel().getAlternativeVersionId();
+		// Set initialVersionId for tab before attaching model to prevent race condition
+		if (typeof info.initialVersionId === 'undefined') {
+			info.initialVersionId = model.getAlternativeVersionId();
+		}
+	
+		// Remember which tag is active BEFORE setting model and updating buttons
+		task.currentTag = tag;
 	
 		// Attach model
 		task.editor.setModel(model);
-	
-		//set initialVersionId for tab
-		if (typeof info.initialVersionId === 'undefined') {
-			info.initialVersionId = info.model.getAlternativeVersionId();
-		}
 	
 		// --- restore cursor/scroll state for this tab ---
 		if (info.viewState) {
@@ -4074,11 +4168,8 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 	
 		// Jam.py UI helpers
 		show_info_tabs(task, info);
-		update_buttons(task);
+		update_buttons(task); // Now accurately updates ok-btn for the selected tab
 		task.resize_elements(task);
-	
-		// Remember which tag is active
-		task.currentTag = tag;
 	}
 	
 	
@@ -4121,28 +4212,7 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 	// }
 	
 	function get_modified(task) {
-		/*var editor = task.editor,
-			model = editor && editor.getModel();
-		
-		console.log('Base: ' + task.initialVersionId + ' and current: ' + editor.getModel().getAlternativeVersionId());
-		if (model) {
-			model.onDidChangeContent(function (event){
-				if (task.editor.getModel().getAlternativeVersionId() === task.initialVersionId) {
-					task.code_editor.find('#ok-btn').prop("disabled", true);
-				}   else {
-					task.code_editor.find('#ok-btn').prop("disabled", false);
-				}
-			});
-	
-			if (task.editor.getModel().getAlternativeVersionId() == task.initialVersionId) {
-				return false;
-			}   else {
-				return true;
-			}
-		}   else {
-			return false;
-		}*/
-		const info = task.tabs[task.currentTag];
+		/*const info = task.tabs[task.currentTag];
 		const model = task.editor.getModel();
 	
 		if (info && model) {
@@ -4152,6 +4222,18 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 			}
 			
 			return model.getAlternativeVersionId() !== info.initialVersionId;
+		}
+		return false;*/
+	
+		const activeTag = $('ul#task-tabs li button.active').attr('id');
+		const info = task.tabs[activeTag];
+	
+		if (info && info.model) {
+			if (typeof info.initialVersionId === 'undefined') {
+				info.initialVersionId = info.model.getAlternativeVersionId();
+			}
+			// Check version ID directly on the specific tab's model instance
+			return info.model.getAlternativeVersionId() !== info.initialVersionId;
 		}
 		return false;
 	}
@@ -4260,7 +4342,7 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 	}
 	
 	function create_info_tabs(task, tag) {
-		var info = task.tabs[tag],
+		/*var info = task.tabs[tag],
 			editor_tabs;
 		task.code_editor.find("#editor-tabs").detach();
 		editor_tabs = $(
@@ -4299,7 +4381,52 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 			add_tree(task, task.task_dict, "task");
 			info_tab_clicked(task, task.code_editor.find('#editor-tabs li button#task'));
 		}
-		info.editor_tabs = editor_tabs;
+		info.editor_tabs = editor_tabs;*/
+	
+		var info = task.tabs[tag],
+				editor_tabs;
+			task.code_editor.find("#editor-tabs").detach();
+			editor_tabs = $(
+				'<div id="editor-tabs">' +
+					'<ul class="nav nav-tabs editor">' +
+					'</ul>' +
+					'<div class="p-1 border-bottom info-search-box">' +
+						'<input type="text" class="form-control form-control-sm tab-tree-search" placeholder="Search...">' +
+					'</div>' +
+					'<div id="info-grids">' +
+					'</div>' +
+				'</div>'
+			);
+			task.code_editor.find('#left-box').append(editor_tabs);
+			set_info_grids_height();
+			if (info.doc_type) {
+				task.code_editor.find('#editor-tabs ul')
+					.append('<li class="nav-item"><button class="nav-link" id="module" href="#">Module</button></li>')
+					.append('<li class="nav-item"><button class="nav-link" id="events" href="#">Events</button></li>')
+					.append('<li class="nav-item"><button class="nav-link" id="task" href="#">Task</button></li>')
+					.append('<li class="nav-item"><button class="nav-link" id="fields" href="#">Fields</button></li>');
+				add_tree(task, info.module, "module");
+				add_tree(task, info.events, "events");
+				add_tree(task, task.task_dict, "task");
+				add_tree(task, info.fields, "fields");
+				info_tab_clicked(task, $('#editor-tabs li button#module'));
+			}
+			else if (info.templates) {
+				task.code_editor.find('#editor-tabs ul')
+					.append('<li class="nav-item"><button class="nav-link" id="templates" href="#">Templates</button></li>')
+					.append('<li class="nav-item"><button class="nav-link" id="task" href="#">Task</button></li>');
+				add_tree(task, info.templates, "templates");
+				add_tree(task, task.task_dict, "task");
+				info_tab_clicked(task, task.code_editor.find('#editor-tabs li button#templates'));
+			}
+			else {
+				task.code_editor.find('#editor-tabs ul')
+					.append('<li class="nav-item"><button class="nav-link" id="task" href="#">Task</button></li>');
+				add_tree(task, task.task_dict, "task");
+				info_tab_clicked(task, task.code_editor.find('#editor-tabs li button#task'));
+			}
+			info.editor_tabs = editor_tabs;
+	
 	}
 	
 	function add_tree(task, tree_info, info_name) {
@@ -4415,14 +4542,27 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 	}
 	
 	function info_tab_clicked(task, $btn) {
+		//task.code_editor.find('#editor-tabs li button').removeClass('active');
+		//$btn.addClass('active');
+		//update_tab_height(task);
+		
 		task.code_editor.find('#editor-tabs li button').removeClass('active');
 		$btn.addClass('active');
+		
+		// Reset search input value
+		let $searchInput = task.code_editor.find('.tab-tree-search');
+		$searchInput.val('');
+		
 		update_tab_height(task);
+		
+		// Restore default tree node display states
+		let activeTabId = $btn.attr('id');
+		task.code_editor.find('#info-grids div.info-tree.' + activeTabId + ' li').show();
 	}
 	
 	
 	function tree_node_clicked(task, tag, $li) {
-		var info = task.tabs[tag],
+		/*var info = task.tabs[tag],
 			tab = $li.closest('.info-tree').attr('id'),
 			node_text = $li.find('span.tree-text:first').data('name') ||
 								$li.find('span.tree-text:first').text().trim(),
@@ -4460,6 +4600,47 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 			text = node_text;
 			find_text(task, text);
 		}
+		task.editor.focus();*/
+	
+		var info = task.tabs[tag],
+			tab = $li.closest('.info-tree').attr('id'),
+			node_text = $li.find('span.tree-text:first').data('name') ||
+						$li.find('span.tree-text:first').text().trim(),
+			text,
+			result,
+			params;
+	
+		if (tab === 'module') {
+			gotoLine(task.editor, 1);
+			if (info.ext === 'py') {
+				text = 'def ' + node_text;
+			} else {
+				text = 'function ' + node_text;
+			}
+			result = find_text(task, text);
+		}
+		else if (tab === 'events') {
+			gotoLine(task.editor, 1);
+			if (!find_text(task, node_text + '(')) {
+				params = info.events[node_text];
+				gotoLine(task.editor, task.editor.getModel().getLineCount() + 1);
+				if (info.ext === 'py') {
+					text = 'def ' + node_text + '(' + params + '):\n\tpass';
+				} else {
+					text = 'function ' + node_text + '(' + params + ') {\n\n}';
+				}
+				insertText(task.editor, '\n\n' + text);
+			}
+		}
+		else if (tab === 'task' || tab === 'fields') {
+			// Replaces highlighted selection or inserts text at cursor position
+			insertText(task.editor, node_text);
+		}
+		else if (tab === 'templates') {
+			gotoLine(task.editor, 1);
+			text = node_text;
+			find_text(task, text);
+		}
 		task.editor.focus();
 	}
 	
@@ -4471,22 +4652,63 @@ function Events14() { // app_builder.catalogs.sys_code_editor
 	}
 	
 	function insertText(editor, text) {
-		if (!editor || !editor.getModel()) return;
+		/*if (!editor || !editor.getModel()) return;
 		var position = editor.getPosition();
 		editor.executeEdits("", [{
 			range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
 			text: text,
 			forceMoveMarkers: true
 		}]);
-		// move cursor to end of inserted text
-		editor.setPosition({lineNumber: position.lineNumber + text.split("\n").length - 1, column: position.column + text.length});
+		editor.setPosition({lineNumber: position.lineNumber + text.split("\n").length - 1, column: position.column + text.length});*/
+	
+		if (!editor || !editor.getModel()) return;
+	
+		// Retrieve active selection range or cursor position
+		var selection = editor.getSelection();
+		
+		if (!selection) {
+			var position = editor.getPosition();
+			selection = new monaco.Range(
+				position.lineNumber, 
+				position.column, 
+				position.lineNumber, 
+				position.column
+			);
+		}
+	
+		// Execute edit over the target selection range
+		editor.executeEdits("tree-insert", [{
+			range: selection,
+			text: text,
+			forceMoveMarkers: true
+		}]);
+	
+		// Calculate end line and column after text replacement
+		var lines = text.split("\n");
+		var endLineNumber = selection.startLineNumber + lines.length - 1;
+		var endColumn = (lines.length === 1) 
+			? selection.startColumn + text.length 
+			: lines[lines.length - 1].length + 1;
+	
+		// Set cursor position right after inserted/overwritten text
+		editor.setPosition({
+			lineNumber: endLineNumber,
+			column: endColumn
+		});
 	}
 	
 	
 	function set_info_grids_height() {
+		//task.code_editor.find('#info-grids').height(
+		//	task.code_editor.find('#left-box').innerHeight() - task.code_editor.find('ul.nav-tabs').outerHeight() - 14
+		//)
+	
+		let searchHeight = task.code_editor.find('.info-search-box').outerHeight(true) || 0;
+		let navHeight = task.code_editor.find('ul.nav-tabs').outerHeight(true) || 0;
+		
 		task.code_editor.find('#info-grids').height(
-			task.code_editor.find('#left-box').innerHeight() - task.code_editor.find('ul.nav-tabs').outerHeight() - 14
-		)
+			task.code_editor.find('#left-box').innerHeight() - navHeight - searchHeight - 14
+		);
 	}
 	
 	function update_tab_height(task) {
